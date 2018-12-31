@@ -7,9 +7,9 @@
 //
 
 #include <iostream>
+#include "knuth.h"
 
 int main(int argc, const char * argv[]) {
-    // insert code here...
-    std::cout << "Hello, World!\n";
+    solve("/users/claytonknittel/documents/xcode/math/math/kan.txt");
     return 0;
 }
