@@ -9,18 +9,15 @@
 #include <stdio.h>
 
 #include "knuth.h"
-#include <vector>
 #include <iostream>
-#include <string>
 #include <fstream>
 #include <sstream>
 #include <map>
+#include <algorithm>
 
 using std::cout;
 using std::endl;
-using std::vector;
 using std::ifstream;
-using std::string;
 using std::istringstream;
 using std::map;
 
@@ -97,12 +94,38 @@ int get_index(node *nodes, int xl) {
 	while (nodes[xl].aux > 0)
 		xl--;
 	return -nodes[xl].aux;
+//	return xl;
+}
+
+//void recover_option(vector<string> &res, node *nodes, item *items, int spacerIndex) {
+//	int top;
+//	while ((top = nodes[++spacerIndex].aux) > 0)
+//		res.push_back(items[top].name);
+//}
+//
+//void recover_option(vector<vector<string>> &res, node *nodes, item *items, vector<int> spacerIndices) {
+//	for (auto it = spacerIndices.begin(); it != spacerIndices.end(); it++) {
+//		res.push_back(vector<string>());
+//		recover_option(res[res.size() - 1], nodes, items, *it);
+//	}
+//}
+
+void print_update(vector<vector<int>> &solns) {
+	static int tot = 0;
+	tot++;
+	if (tot % 10000 == 0) {
+		cout << "Solution " << tot << endl;
+		auto &last = solns[solns.size() - 1];
+		for (auto it = last.begin(); it != last.end(); it++)
+			cout << *it << " ";
+		cout << endl;
+	}
 }
 
 void solveAllHelp(node *nodes, item *items, vector<int> &soln, vector<vector<int>> &solns) {
 	if (items[0].right == 0) {
 		solns.push_back(vector<int>(soln));
-		cout << solns.size() << endl;
+		print_update(solns);
 		return;
 	}
 	int minlen = -1;
@@ -233,6 +256,7 @@ bool create_structs(ifstream &f, node *nodes, item *items, int num_nodes, int nu
 	for (int i = 0; i < num_options; i++) {
 		if (!getline(f, option)) {
 			cout << "num_options incorrect" << endl;
+			f.close();
 			return false;
 		}
 		istringstream opt(option);
@@ -242,6 +266,7 @@ bool create_structs(ifstream &f, node *nodes, item *items, int num_nodes, int nu
 		while (opt >> itm) {
 			if (nodeIndex >= num_nodes) {
 				cout << "too few nodes predicted, check numNodes and numOptions" << endl;
+				f.close();
 				return false;
 			}
 			
@@ -261,6 +286,7 @@ bool create_structs(ifstream &f, node *nodes, item *items, int num_nodes, int nu
 		}
 		if (nodeIndex >= num_nodes) {
 			cout << "too few nodes predicted, check numNodes and numOptions" << endl;
+			f.close();
 			return false;
 		}
 		nodes[lastSpacer].down = nodeIndex - 1;
@@ -269,6 +295,7 @@ bool create_structs(ifstream &f, node *nodes, item *items, int num_nodes, int nu
 		lastSpacer = nodeIndex;
 		nodeIndex++;
 	}
+	f.close();
 	
 //	for (int i = 0; i < num_nodes; i++) {
 //		cout << i << ": " << nodes[i].aux << " " << nodes[i].up << " " << nodes[i].down << endl;
@@ -298,11 +325,11 @@ void get_sizes(ifstream &f, int &num_nodes, int &num_items, int &num_options) {
  *
  * num choices is sum of all items in all options
  */
-void solve(const char* file_loc) {
+void solve(const char* file_loc, vector<vector<int>> &solutions) {
 	ifstream f;
 	f.open(file_loc);
 	if (!f.is_open()) {
-		cout << "unable to open file" << endl;
+		cout << "unable to open file " << file_loc << endl;
 		return;
 	}
 	int num_nodes, num_items, num_options;
@@ -312,12 +339,49 @@ void solve(const char* file_loc) {
 	if (!create_structs(f, nodes, items, num_nodes, num_items, num_options))
 		return;
 	vector<int> soln;
-	vector<vector<int>> solns;
-	solveAllHelp(nodes, items, soln, solns);
-	for (auto it = solns.begin(); it != solns.end(); it++) {
-		for (auto it2 = it->begin(); it2 != it->end(); it2++)
-			cout << *it2 << " ";
-		cout << endl;
-	}
+	solveAllHelp(nodes, items, soln, solutions);
 }
 
+void solveOnce(const char* file_loc, vector<int> &solution) {
+	ifstream f;
+	f.open(file_loc);
+	if (!f.is_open()) {
+		cout << "unable to open file " << file_loc << endl;
+		return;
+	}
+	int num_nodes, num_items, num_options;
+	get_sizes(f, num_nodes, num_items, num_options);
+	node nodes[num_nodes];
+	item items[num_items];
+	if (!create_structs(f, nodes, items, num_nodes, num_items, num_options))
+		return;
+	solveOneHelp(nodes, items, solution);
+}
+
+void getOptions(const char* file_loc, vector<string> &results, vector<int> solution) {
+	ifstream f;
+	f.open(file_loc);
+	if (!f.is_open()) {
+		cout << "unable to open file " << file_loc << endl;
+		return;
+	}
+	std::sort(solution.begin(), solution.end());
+	string buf;
+	int loc = 0;
+	getline(f, buf); // skip first two lines
+	getline(f, buf);
+	for (int i = 0; 1; i++) {
+		if (!getline(f, buf)) {
+			cout << "error in solution or file, option " << solution[loc] << " does not exist" << endl;
+			f.close();
+			return;
+		}
+		if (i != solution[loc])
+			continue;
+		loc++;
+		results.push_back(buf);
+		if (loc >= static_cast<int>(solution.size()))
+			break;
+	}
+	f.close();
+}

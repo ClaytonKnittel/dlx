@@ -10,7 +10,15 @@
 #define knuth_h
 
 #include <stdio.h>
+#include <string>
+#include <vector>
 
-void solve(const char* file_loc);
+using std::string;
+using std::vector;
+
+void solve(const char* file_loc, vector<vector<int>> &solutions);
+void solveOnce(const char* file_loc, vector<int> &solution);
+
+void getOptions(const char* file_loc, vector<string> &results, vector<int> solution);
 
 #endif /* knuth_h */
