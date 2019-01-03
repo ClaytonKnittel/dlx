@@ -12,14 +12,14 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <map>
 #include <algorithm>
 
 using std::cout;
 using std::endl;
 using std::ifstream;
+using std::ofstream;
 using std::istringstream;
-using std::map;
+using std::ostringstream;
 
 struct node {
 	int up, down, aux;
@@ -219,6 +219,23 @@ bool solveOneHelp(node *nodes, item *items, vector<int> &soln) {
 	return false;
 }
 
+void make_decisions(node *nodes, item *items, map<int, int> &optionMap, vector<int> &decisions) {
+	int xl = optionMap[decisions[decisions.size() - 1]];
+	decisions.pop_back();
+	int p = xl + 1;
+	while (1) {
+		int j = nodes[p].aux;
+		if (j <= 0)
+			break;
+		else {
+			cover(nodes, items, j);
+			p ++;
+		}
+	}
+	if (decisions.size() > 0)
+		make_decisions(nodes, items, optionMap, decisions);
+}
+
 bool create_structs(ifstream &f, node *nodes, item *items, int num_nodes, int num_items, int num_options) {
 	items[0].left = num_items - 1;
 	items[num_items - 1].right = 0;
@@ -305,6 +322,83 @@ bool create_structs(ifstream &f, node *nodes, item *items, int num_nodes, int nu
 	return true;
 }
 
+void write_file(const char* save_to_file_loc, node *nodes, item *items, map<int, int> optionMap, const vector<int> &choices, int num_items, int num_options) {
+	ofstream f;
+	f.open(save_to_file_loc);
+	if (!f.is_open()) {
+		cout << "unable to open file " << save_to_file_loc << endl;
+		return;
+	}
+	
+	ostringstream sizes;
+	ostringstream itms;
+	ostringstream opts;
+	
+	// write all items (we will be including the options that
+	// have already been determined, so exclude nothing
+	sizes << num_items - 1 << " ";
+	for (int i = 1; i < num_items; i++) {
+		itms << items[i].name;
+		if (i < num_items - 1)
+			itms << " ";
+	}
+	
+	int new_num_opts = static_cast<int>(choices.size());
+	int new_num_choices = 0;
+	
+	// write the given options
+	for (auto it = choices.begin(); it != choices.end(); it++) {
+		int opt = optionMap[*it];
+		int x = opt + 1;
+		int top;
+		opts << '\n';
+		while ((top = nodes[x].aux) > 0) {
+			opts << items[top].name;
+			x++;
+			new_num_choices++;
+			if (nodes[x].aux > 0)
+				opts << " ";
+		}
+	}
+	
+	// write the remaining available options consistent with the givens
+	for (int i = 0; i < num_options; i++) {
+		int opt = optionMap[i];
+		int x = opt + 1;
+		bool is_still_viable = 1;
+		while (nodes[x].aux > 0) {
+			int itm = nodes[x].aux;
+			if (items[items[itm].left].right != itm) {
+				is_still_viable = 0;
+				break;
+			}
+			x++;
+		}
+		if (is_still_viable) {
+			opts << '\n';
+			new_num_opts++;
+			int x = opt + 1;
+			int top;
+			while ((top = nodes[x].aux) > 0) {
+				opts << items[top].name;
+				x++;
+				new_num_choices++;
+				if (nodes[x].aux > 0)
+					opts << " ";
+			}
+		}
+	}
+	sizes << new_num_opts << " " << new_num_choices;
+	f << sizes.str() << '\n' << itms.str() << opts.str();
+	f.close();
+}
+
+void construct_option_map(node *nodes, int num_items, int num_nodes, map<int, int> &m) {
+	for (int i = num_items + 1; i < num_nodes - 1; i++)
+		if (nodes[i].aux <= 0)
+			m[-nodes[i].aux] = i;
+}
+
 void get_sizes(ifstream &f, int &num_nodes, int &num_items, int &num_options) {
 	string buf;
 	getline(f, buf);
@@ -314,6 +408,16 @@ void get_sizes(ifstream &f, int &num_nodes, int &num_items, int &num_options) {
 	num_items ++; // for the first item (items[0]) which is always empty
 	num_nodes = num_options + num_items + numChoices + 1;
 }
+
+
+dlx_struct::dlx_struct(node *nodes, item *items, map<int, int> *m): nodes(nodes), items(items), optionMap(m) {}
+
+dlx_struct::~dlx_struct() {
+	delete [] nodes;
+	delete [] items;
+	delete optionMap;
+}
+
 
 /**
  * File protocol:
@@ -325,40 +429,59 @@ void get_sizes(ifstream &f, int &num_nodes, int &num_items, int &num_options) {
  *
  * num choices is sum of all items in all options
  */
-void solve(const char* file_loc, vector<vector<int>> &solutions) {
+dlx init(const char* file_loc) {
 	ifstream f;
 	f.open(file_loc);
 	if (!f.is_open()) {
 		cout << "unable to open file " << file_loc << endl;
-		return;
+		return nullptr;
 	}
 	int num_nodes, num_items, num_options;
 	get_sizes(f, num_nodes, num_items, num_options);
-	node nodes[num_nodes];
-	item items[num_items];
-	if (!create_structs(f, nodes, items, num_nodes, num_items, num_options))
-		return;
-	vector<int> soln;
-	solveAllHelp(nodes, items, soln, solutions);
+	node *nodes = new node[num_nodes];
+	item *items = new item[num_items];
+	if (!create_structs(f, nodes, items, num_nodes, num_items, num_options)) {
+		delete [] nodes;
+		delete [] items;
+		return nullptr;
+	}
+	map<int, int> *optionMap = new map<int, int>();
+	construct_option_map(nodes, num_items, num_nodes, *optionMap);
+	dlx d = std::make_shared<dlx_struct>(nodes, items, optionMap);
+	d->num_items = num_items;
+	d->num_nodes = num_nodes;
+	d->num_options = num_options;
+	return d;
 }
 
-void solveOnce(const char* file_loc, vector<int> &solution) {
-	ifstream f;
-	f.open(file_loc);
-	if (!f.is_open()) {
-		cout << "unable to open file " << file_loc << endl;
-		return;
-	}
-	int num_nodes, num_items, num_options;
-	get_sizes(f, num_nodes, num_items, num_options);
-	node nodes[num_nodes];
-	item items[num_items];
-	if (!create_structs(f, nodes, items, num_nodes, num_items, num_options))
-		return;
-	solveOneHelp(nodes, items, solution);
+void solve(dlx d, vector<vector<int>> &solutions) {
+	vector<int> soln;
+	solveAllHelp(d->nodes, d->items, soln, solutions);
+}
+
+void solveOnce(dlx d, vector<int> &solution) {
+	solveOneHelp(d->nodes, d->items, solution);
+}
+
+void makeDecisions(dlx d, vector<int> decisions) {
+	vector<int> cpy = decisions;
+	make_decisions(d->nodes, d->items, *(d->optionMap), cpy);
+}
+
+void makeDecisions(dlx d, vector<string> decisions) {
+//	vector<int> cpy = decisions;
+//	make_decisions(d->nodes, d->items, *(d->optionMap), cpy);
+}
+
+void write_to_file(dlx d, const char* save_to_file_loc, vector<int> decisions) {
+	write_file(save_to_file_loc, d->nodes, d->items, *(d->optionMap), decisions, d->num_items, d->num_options);
 }
 
 void getOptions(const char* file_loc, vector<string> &results, vector<int> solution) {
+	if (solution.size() == 0) {
+		cout << "no solution given" << endl;
+		return;
+	}
 	ifstream f;
 	f.open(file_loc);
 	if (!f.is_open()) {
