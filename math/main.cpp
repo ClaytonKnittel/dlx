@@ -7,10 +7,11 @@
 //
 
 #include <iostream>
-#include "knuth.h"
-#include "kanoodle.hpp"
+//#include "kanoodle.hpp"
+#include "sudoku.hpp"
 
 int main(int argc, const char * argv[]) {
-	run();
+//	run();
+	rudoku();
     return 0;
 }

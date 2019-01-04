@@ -11,4 +11,6 @@
 
 #include <stdio.h>
 
+void rudoku();
+
 #endif /* sudoku_hpp */
