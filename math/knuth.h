@@ -22,12 +22,14 @@ struct node;
 struct item;
 
 struct dlx_struct {
+	string file_loc;
 	int num_items, num_options, num_nodes;
 	node *nodes;
 	item *items;
 	map<int, int> *optionMap;
+	string *options;
 	
-	dlx_struct(node *nodes, item *items, map<int, int> *m);
+	dlx_struct(node *nodes, item *items, string *options, map<int, int> *m);
 	~dlx_struct();
 };
 
@@ -44,6 +46,6 @@ void makeDecisions(dlx d, vector<string> decisions);
 
 void write_to_file(dlx d, const char* save_to_file_loc, vector<int> decisions);
 
-void getOptions(const char* file_loc, vector<string> &results, vector<int> solution);
+void getOptions(dlx d, vector<string> &results, vector<int> solution);
 
 #endif /* knuth_h */

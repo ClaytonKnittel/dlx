@@ -236,9 +236,11 @@ void make_decisions(node *nodes, item *items, map<int, int> &optionMap, vector<i
 		make_decisions(nodes, items, optionMap, decisions);
 }
 
-bool create_structs(ifstream &f, node *nodes, item *items, int num_nodes, int num_items, int num_options) {
+bool create_structs(ifstream &f, node *nodes, item *items, string *&options, int num_nodes, int num_items, int num_options) {
 	items[0].left = num_items - 1;
 	items[num_items - 1].right = 0;
+	
+	options = new string[num_options];
 
 	string itemNames;
 	getline(f, itemNames);
@@ -272,10 +274,11 @@ bool create_structs(ifstream &f, node *nodes, item *items, int num_nodes, int nu
 	string option;
 	for (int i = 0; i < num_options; i++) {
 		if (!getline(f, option)) {
-			cout << "num_options incorrect" << endl;
+			cout << "num_options too low" << endl;
 			f.close();
 			return false;
 		}
+		options[i] = option;
 		istringstream opt(option);
 		int firstInRow = -1;
 		
@@ -287,7 +290,12 @@ bool create_structs(ifstream &f, node *nodes, item *items, int num_nodes, int nu
 				return false;
 			}
 			
-			int x = itemIndex[itm];
+			auto it = itemIndex.find(itm);
+			if (it == itemIndex.end()) {
+				cout << "key " << itm << " not in item list" << endl;
+				return false;
+			}
+			int x = it->second;
 			
 			if (firstInRow == -1) {
 				firstInRow = nodeIndex;
@@ -311,6 +319,14 @@ bool create_structs(ifstream &f, node *nodes, item *items, int num_nodes, int nu
 		nodes[nodeIndex].aux = -spacerCount++;
 		lastSpacer = nodeIndex;
 		nodeIndex++;
+	}
+	if (nodeIndex != num_nodes) {
+		cout << "expected " << num_nodes << " nodes, but have " << nodeIndex << endl;
+		return false;
+	}
+	if (getline(f, option)) {
+		cout << "num_options too high" << endl;
+		return false;
 	}
 	f.close();
 	
@@ -410,11 +426,12 @@ void get_sizes(ifstream &f, int &num_nodes, int &num_items, int &num_options) {
 }
 
 
-dlx_struct::dlx_struct(node *nodes, item *items, map<int, int> *m): nodes(nodes), items(items), optionMap(m) {}
+dlx_struct::dlx_struct(node *nodes, item *items, string *options, map<int, int> *m): nodes(nodes), items(items), options(options), optionMap(m) {}
 
 dlx_struct::~dlx_struct() {
 	delete [] nodes;
 	delete [] items;
+	delete [] options;
 	delete optionMap;
 }
 
@@ -440,17 +457,20 @@ dlx init(const char* file_loc) {
 	get_sizes(f, num_nodes, num_items, num_options);
 	node *nodes = new node[num_nodes];
 	item *items = new item[num_items];
-	if (!create_structs(f, nodes, items, num_nodes, num_items, num_options)) {
+	string *options;
+	if (!create_structs(f, nodes, items, options, num_nodes, num_items, num_options)) {
 		delete [] nodes;
 		delete [] items;
+		delete [] options;
 		return nullptr;
 	}
 	map<int, int> *optionMap = new map<int, int>();
 	construct_option_map(nodes, num_items, num_nodes, *optionMap);
-	dlx d = std::make_shared<dlx_struct>(nodes, items, optionMap);
+	dlx d = std::make_shared<dlx_struct>(nodes, items, options, optionMap);
 	d->num_items = num_items;
 	d->num_nodes = num_nodes;
 	d->num_options = num_options;
+	d->file_loc = file_loc;
 	return d;
 }
 
@@ -469,42 +489,34 @@ void makeDecisions(dlx d, vector<int> decisions) {
 }
 
 void makeDecisions(dlx d, vector<string> decisions) {
-//	vector<int> cpy = decisions;
-//	make_decisions(d->nodes, d->items, *(d->optionMap), cpy);
+	item *items = d->items;
+	for (auto it = decisions.begin(); it != decisions.end(); it++) {
+		istringstream is(*it);
+		string buf;
+		int found = 0;
+		while (is >> buf) {
+			for (int p = 1; p != 0; p = items[p].right) {
+				if (buf == items[p].name) {
+					found = 1;
+					cover(d->nodes, items, p);
+					break;
+				}
+			}
+			if (!found)
+				cout << "decision " << buf << " was not found" << endl;
+		}
+	}
 }
 
 void write_to_file(dlx d, const char* save_to_file_loc, vector<int> decisions) {
 	write_file(save_to_file_loc, d->nodes, d->items, *(d->optionMap), decisions, d->num_items, d->num_options);
 }
 
-void getOptions(const char* file_loc, vector<string> &results, vector<int> solution) {
+void getOptions(dlx d, vector<string> &results, vector<int> solution) {
 	if (solution.size() == 0) {
 		cout << "no solution given" << endl;
 		return;
 	}
-	ifstream f;
-	f.open(file_loc);
-	if (!f.is_open()) {
-		cout << "unable to open file " << file_loc << endl;
-		return;
-	}
-	std::sort(solution.begin(), solution.end());
-	string buf;
-	int loc = 0;
-	getline(f, buf); // skip first two lines
-	getline(f, buf);
-	for (int i = 0; 1; i++) {
-		if (!getline(f, buf)) {
-			cout << "error in solution or file, option " << solution[loc] << " does not exist" << endl;
-			f.close();
-			return;
-		}
-		if (i != solution[loc])
-			continue;
-		loc++;
-		results.push_back(buf);
-		if (loc >= static_cast<int>(solution.size()))
-			break;
-	}
-	f.close();
+	for (int s : solution)
+		results.push_back(d->options[s]);
 }
