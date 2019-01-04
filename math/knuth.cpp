@@ -252,7 +252,11 @@ bool create_structs(ifstream &f, node *nodes, item *items, string *&options, int
 	for (int i = 1; i < num_items; i++) {
 		items[i - 1].right = i;
 		items[i].left = i - 1;
-		is >> items[i].name;
+		if (!(is >> items[i].name)) {
+			cout << "expected " << num_items << " items, but found less" << endl;
+			return false;
+		}
+		
 		
 		// So later on we can find the node corresponding to a given option
 		itemIndex[items[i].name] = i;
@@ -261,6 +265,10 @@ bool create_structs(ifstream &f, node *nodes, item *items, string *&options, int
 		nodes[nodeIndex].down = i;
 		nodes[nodeIndex].aux = 0; // length
 		nodeIndex++;
+	}
+	if (is >> itemNames) {
+		cout << "expected " << num_items << " items, but found more" << endl;
+		return false;
 	}
 	
 	int spacerCount = 0;
@@ -420,7 +428,10 @@ void get_sizes(ifstream &f, int &num_nodes, int &num_items, int &num_options) {
 	getline(f, buf);
 	istringstream is(buf);
 	int numChoices;
-	is >> num_items >> num_options >> numChoices;
+	if (!(is >> num_items >> num_options >> numChoices)) {
+		cout << "first arguments in file aren't properly formatted" << endl;
+		return;
+	}
 	num_items ++; // for the first item (items[0]) which is always empty
 	num_nodes = num_options + num_items + numChoices + 1;
 }

@@ -101,7 +101,7 @@ void print3DBoard(const vector<string> &res) {
 			is1 >> x;
 			is2 >> y;
 			is3 >> z;
-			board[z][x + (5 - z) * y] = name[0];
+			board[z][x + (5 - z) * (4 - z - y)] = name[0];
 		}
 	}
 	
@@ -121,62 +121,51 @@ void write_file(const char* setup_file, const char* pieces_file="/users/claytonk
 }
 
 void run() {
-	dlx d = init("/users/claytonknittel/documents/xcode/math/math/kanoodle/pyrvert.txt");
+	dlx d = init("/users/claytonknittel/documents/xcode/math/math/kanoodle/pyrvert2.txt");
 	if (d == nullptr)
 		return;
+	
+	vector<string> best;// = {"C 0,4,0 0,3,0 0,2,0 1,4,0", "J 0,0,0 0,1,0 1,0,0 1,1,0", "E 1,2,0 1,3,0 2,2,0 2,3,0 2,4,0"};
+//	makeDecisions(d, best);
+	
 	vector<vector<int>> v;
 	solve(d, v);
 	
 	cout << "num solutions: " << v.size() << endl;
-	
-	vector<string> best;
-	int maxDifZ = 12;
-	for (auto it = v.begin(); it != v.end(); it++) {
-		vector<string> decs;
-		getOptions(d, decs, *it);
-		int difZCount = 0;
-		for (const string &s : decs) {
-			int zz = -1;
-			string name;
-			istringstream is(s);
-			is >> name;
-			string tile;
-			while (is >> tile) {
-				int z;
-				istringstream is3(tile.substr(4, 5));
-				is3 >> z;
-				
-				if (zz == -1)
-					zz = z;
-				else if (zz != z) {
-					difZCount++;
-					break;
-				}
-			}
-		}
-		if (difZCount < maxDifZ) {
-			maxDifZ = difZCount;
-			best = decs;
-		}
-	}
-	
-	cout << "best difz: " << maxDifZ << endl;
+	getOptions(d, best, v[0]);
 	
 	print3DBoard(best);
 	
-//	vector<int> decs = {1316, 1188, 904, 1380, 1469, 954, 650, 470, 13, 270};//, 97, 775};
-//	dlx d = init("/users/claytonknittel/documents/xcode/math/math/kanoodle/kan.txt");
-//	makeDecisions(d, decs);
-//	write_to_file(d, "/users/claytonknittel/documents/xcode/math/math/kanoodle/kan2.txt", decs);
-	
-//	enumerate_possibilities("/users/claytonknittel/documents/xcode/math/math/kanoodle/pieces.txt");
-	
-//	vector<int> v;
-//	dlx d = init("/users/claytonknittel/documents/xcode/math/math/kanoodle/kan.txt");
-//	vector<string> dec = {"F 8,0 8,1 8,2 7,1 9,1", "K 6,1 6,2 5,2 4,2 4,1"};
-//	makeDecisions(d, dec);
-//	solveOnce(d, v);
-//	cout << v << endl;
-//	getOptions("/users/claytonknittel/documents/xcode/math/math/kanoodle/kan.txt", dec, v);
-//	printBoard(dec);
+//	vector<string> best;
+//	int maxDifZ = 12;
+//	for (auto it = v.begin(); it != v.end(); it++) {
+//		vector<string> decs;
+//		getOptions(d, decs, *it);
+//		int difZCount = 0;
+//		for (const string &s : decs) {
+//			int zz = -1;
+//			string name;
+//			istringstream is(s);
+//			is >> name;
+//			string tile;
+//			while (is >> tile) {
+//				int z;
+//				istringstream is3(tile.substr(4, 5));
+//				is3 >> z;
+//
+//				if (zz == -1)
+//					zz = z;
+//				else if (zz != z) {
+//					difZCount++;
+//					break;
+//				}
+//			}
+//		}
+//		if (difZCount < maxDifZ) {
+//			maxDifZ = difZCount;
+//			best = decs;
+//		}
+//	}
+//
+//	cout << "best difz: " << maxDifZ << endl;
 }
