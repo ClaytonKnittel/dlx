@@ -113,7 +113,7 @@ int get_index(node *nodes, int xl) {
 void print_update(vector<vector<int>> &solns) {
 	static int tot = 0;
 	tot++;
-	if (tot % 10000 == 0) {
+	if (tot % 1000000 == 0) {
 		cout << "Solution " << tot << endl;
 		auto &last = solns[solns.size() - 1];
 		for (auto it = last.begin(); it != last.end(); it++)
@@ -237,24 +237,44 @@ void make_decisions(node *nodes, item *items, map<int, int> &optionMap, vector<i
 }
 
 bool create_structs(ifstream &f, node *nodes, item *items, string *&options, int num_nodes, int num_items, int num_options) {
-	items[0].left = num_items - 1;
-	items[num_items - 1].right = 0;
-	
 	options = new string[num_options];
+	
+	items[0].left = num_items - 1;
+	items[0].right = 1;
 
 	string itemNames;
 	getline(f, itemNames);
 	istringstream is(itemNames);
 
 	map<string, int> itemIndex;
+	
+	const string optionalDivider = "|";
+	int divided = 0;
 
 	int nodeIndex = 1;
 	for (int i = 1; i < num_items; i++) {
-		items[i - 1].right = i;
-		items[i].left = i - 1;
+		if (divided) {
+			items[i].right = i;
+			items[i].left = i;
+		}
+		else {
+			items[i].right = i + 1;
+			items[i].left = i - 1;
+		}
 		if (!(is >> items[i].name)) {
 			cout << "expected " << num_items << " items, but found less" << endl;
 			return false;
+		}
+		if (items[i].name == optionalDivider) {
+			if (divided) {
+				cout << "too many dividers \"|\"" << endl;
+				return false;
+			}
+			divided = 1;
+			i--;
+			items[i].right = 0;
+			items[0].left = i;
+			continue;
 		}
 		
 		
@@ -266,6 +286,9 @@ bool create_structs(ifstream &f, node *nodes, item *items, string *&options, int
 		nodes[nodeIndex].aux = 0; // length
 		nodeIndex++;
 	}
+	
+	items[num_items - 1].right = 0;
+	
 	if (is >> itemNames) {
 		cout << "expected " << num_items << " items, but found more" << endl;
 		return false;

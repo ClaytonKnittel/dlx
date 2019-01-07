@@ -8,10 +8,12 @@
 
 #include <iostream>
 //#include "kanoodle.hpp"
-#include "sudoku.hpp"
+//#include "sudoku.hpp"
+#include "nqueens.hpp"
 
 int main(int argc, const char * argv[]) {
 //	run();
-	rudoku();
+//	rudoku();
+	nqueens();
     return 0;
 }
