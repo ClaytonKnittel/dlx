@@ -77,12 +77,12 @@ struct sudoku {
 		return os.str();
 	}
 	
-	bool getOptions(const char* file_loc, vector<string> &options) {
+	void getOptions(const char* file_loc, vector<string> &options) {
 		ifstream f;
 		f.open(file_loc);
 		if (!f.is_open()) {
 			cout << "could not open file at " << file_loc << endl;
-			return false;
+			return;
 		}
 		
 		string line;
@@ -90,7 +90,7 @@ struct sudoku {
 		while (getline(f, line)) {
 			if (line.size() != 9) {
 				cout << "corrupt input file, line " << j << " has " << line.size() << " characters, but expect 9" << endl;
-				return false;
+				return;
 			}
 			for (int i = 0; i < 9; i++) {
 				if (line[i] == '_')
@@ -98,7 +98,7 @@ struct sudoku {
 				int v = line[i] - '0';
 				if (v < 1 || v > 9) {
 					cout << "invalid character " << line[i] << " in line " << 9 - j;
-					return false;
+					return;
 				}
 				options.push_back(getOption(i, j, v));
 			}
@@ -106,9 +106,8 @@ struct sudoku {
 		}
 		if (j != -1) {
 			cout << "corrupt input file, expect 9 lines, but has " << 8 - j << endl;
-			return false;
+			return;
 		}
-		return true;
 	}
 	
 	void print(std::ostream &o=std::cout) {
@@ -172,18 +171,15 @@ void rudoku() {
 	
 	dlx d = init("/users/claytonknittel/documents/xcode/math/math/sudoku/input.txt");
 	
-	vector<vector<int>> vs;
+	vector<int> v;
 	
 	vector<string> decisions;
 	sudoku s;
-	if (!s.getOptions("/users/claytonknittel/documents/xcode/math/math/sudoku/example.txt", decisions))
-		return;
+	s.getOptions("/users/claytonknittel/documents/xcode/math/math/sudoku/example.txt", decisions);
 	makeDecisions(d, decisions);
-	solve(d, vs);
+	solveOnce(d, v);
 	
-	cout << "Number of solutions: " << vs.size() << endl;
-	
-	getOptions(d, decisions, vs[0]);
+	getOptions(d, decisions, v);
 	
 //	for (string s : decisions)
 //		cout << s << endl;

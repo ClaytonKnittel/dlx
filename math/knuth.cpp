@@ -22,7 +22,7 @@ using std::istringstream;
 using std::ostringstream;
 
 struct node {
-	int up, down, aux;
+	int up, down, aux, color;
 };
 
 struct item {
@@ -33,6 +33,10 @@ struct item {
 void hide(node *nodes, int p) {
 	int q = p + 1;
 	while (q != p) {
+		if (nodes[q].color < 0) {
+			q++;
+			continue;
+		}
 		int x = nodes[q].aux;
 		int u = nodes[q].up;
 		int d = nodes[q].down;
@@ -60,9 +64,34 @@ void cover(node *nodes, item *items, int i) {
 	items[r].left = l;
 }
 
+void purify(node *nodes, int p) {
+	int c = nodes[p].color;
+	int i = nodes[p].aux;
+	int q = nodes[i].down;
+	while (q != i) {
+		if (nodes[q].color != c)
+			hide(nodes, q);
+		else if (q != p)
+			nodes[q].color = -1;
+		q = nodes[q].down;
+	}
+}
+
+void commit(node *nodes, item *items, int p, int j) {
+	if (nodes[p].color == 0) {
+		cover(nodes, items, j);
+	} else if (nodes[p].color > 0) {
+		purify(nodes, p);
+	}
+}
+
 void unhide(node *nodes, int p) {
 	int q = p - 1;
 	while (q != p) {
+		if (nodes[q].color < 0) {
+			q--;
+			continue;
+		}
 		int x = nodes[q].aux;
 		int u = nodes[q].up;
 		int d = nodes[q].down;
@@ -90,6 +119,26 @@ void uncover(node *nodes, item *items, int i) {
 	}
 }
 
+void unpurify(node *nodes, int p) {
+	int c = nodes[p].color;
+	int i = nodes[p].aux;
+	int q = nodes[i].up;
+	while (q != i) {
+		if (nodes[q].color < 0)
+			nodes[q].color = c;
+		else if (q != p)
+			unhide(nodes, q);
+		q = nodes[q].up;
+	}
+}
+
+void uncommit(node *nodes, item *items, int p, int j) {
+	if (nodes[p].color == 0)
+		uncover(nodes, items, j);
+	else if (nodes[p].color > 0)
+		unpurify(nodes, p);
+}
+
 int get_index(node *nodes, int xl) {
 	while (nodes[xl].aux > 0)
 		xl--;
@@ -97,36 +146,26 @@ int get_index(node *nodes, int xl) {
 //	return xl;
 }
 
-//void recover_option(vector<string> &res, node *nodes, item *items, int spacerIndex) {
-//	int top;
-//	while ((top = nodes[++spacerIndex].aux) > 0)
-//		res.push_back(items[top].name);
-//}
-//
-//void recover_option(vector<vector<string>> &res, node *nodes, item *items, vector<int> spacerIndices) {
-//	for (auto it = spacerIndices.begin(); it != spacerIndices.end(); it++) {
-//		res.push_back(vector<string>());
-//		recover_option(res[res.size() - 1], nodes, items, *it);
-//	}
-//}
-
-void print_update(vector<vector<int>> &solns) {
+void print_update(vector<int> &soln) {
 	static int tot = 0;
 	tot++;
 	if (tot % 1000000 == 0) {
 		cout << "Solution " << tot << endl;
-		auto &last = solns[solns.size() - 1];
-		for (auto it = last.begin(); it != last.end(); it++)
+		for (auto it = soln.begin(); it != soln.end(); it++)
 			cout << *it << " ";
 		cout << endl;
 	}
 }
 
-void solveAllHelp(node *nodes, item *items, vector<int> &soln, vector<vector<int>> &solns) {
+bool solveAllHelp(node *nodes, item *items, vector<int> &soln, vector<vector<int>> &solns, size_t stopAfter) {
 	if (items[0].right == 0) {
 		solns.push_back(vector<int>(soln));
-		print_update(solns);
-		return;
+		print_update(solns[solns.size() - 1]);
+		if (stopAfter == 0)
+			return false;
+		if (solns.size() >= stopAfter)
+			return true;
+		return false;
 	}
 	int minlen = -1;
 	int min_index = 0;
@@ -149,12 +188,13 @@ void solveAllHelp(node *nodes, item *items, vector<int> &soln, vector<vector<int
 			if (j <= 0)
 				p = nodes[p].up;
 			else {
-				cover(nodes, items, j);
+				commit(nodes, items, p, j);
 				p ++;
 			}
 		}
 		soln.push_back(get_index(nodes, xl));
-		solveAllHelp(nodes, items, soln, solns);
+		if (solveAllHelp(nodes, items, soln, solns, stopAfter))
+			return true;
 		soln.pop_back();
 		p = xl - 1;
 		while (p != xl) {
@@ -162,13 +202,14 @@ void solveAllHelp(node *nodes, item *items, vector<int> &soln, vector<vector<int
 			if (j <= 0)
 				p = nodes[p].down;
 			else {
-				uncover(nodes, items, j);
+				uncommit(nodes, items, p, j);
 				p --;
 			}
 		}
 		xl = nodes[xl].down;
 	}
 	uncover(nodes, items, i);
+	return false;
 }
 
 bool solveOneHelp(node *nodes, item *items, vector<int> &soln) {
@@ -195,7 +236,7 @@ bool solveOneHelp(node *nodes, item *items, vector<int> &soln) {
 			if (j <= 0)
 				p = nodes[p].up;
 			else {
-				cover(nodes, items, j);
+				commit(nodes, items, p, j);
 				p ++;
 			}
 		}
@@ -209,7 +250,91 @@ bool solveOneHelp(node *nodes, item *items, vector<int> &soln) {
 			if (j <= 0)
 				p = nodes[p].down;
 			else {
-				uncover(nodes, items, j);
+				uncommit(nodes, items, p, j);
+				p --;
+			}
+		}
+		xl = nodes[xl].down;
+	}
+	uncover(nodes, items, i);
+	return false;
+}
+
+bool solveOptimalHelp(dlx d, vector<int> &soln, vector<int> &best, float bestCost, float(*cost)(const vector<string> &solution), float costGoal, bool maximize) {
+	item *items = d->items;
+	node *nodes = d->nodes;
+	if (items[0].right == 0) {
+		print_update(soln);
+		if (best.size() == 0) {
+			best = soln;
+			vector<string> s;
+			getOptions(d, s, soln);
+			bestCost = cost(s);
+		}
+		else {
+			vector<string> s;
+			getOptions(d, s, soln);
+			float c = cost(s);
+			if (maximize) {
+				if (c > bestCost) {
+					bestCost = c;
+					best = soln;
+				}
+			} else {
+				if (c < bestCost) {
+					bestCost = c;
+					best = soln;
+				}
+			}
+		}
+		if (bestCost == -1)
+			return false;
+		if (maximize) {
+			if (bestCost >= costGoal)
+				return true;
+		}
+		else {
+			if (bestCost <= costGoal)
+				return true;
+		}
+		return false;
+	}
+	int minlen = -1;
+	int min_index = 0;
+	int find = items[0].right;
+	while (find != 0) {
+		int m = nodes[find].aux;
+		if (m < minlen || minlen == -1) {
+			minlen = m;
+			min_index = find;
+		}
+		find = items[find].right;
+	}
+	int i = min_index;
+	cover(nodes, items, i);
+	int xl = nodes[i].down;
+	while (xl != i) {
+		int p = xl + 1;
+		while (p != xl) {
+			int j = nodes[p].aux;
+			if (j <= 0)
+				p = nodes[p].up;
+			else {
+				commit(nodes, items, p, j);
+				p ++;
+			}
+		}
+		soln.push_back(get_index(nodes, xl));
+		if (solveOptimalHelp(d, soln, best, bestCost, cost, costGoal, maximize))
+			return true;
+		soln.pop_back();
+		p = xl - 1;
+		while (p != xl) {
+			int j = nodes[p].aux;
+			if (j <= 0)
+				p = nodes[p].down;
+			else {
+				uncommit(nodes, items, p, j);
 				p --;
 			}
 		}
@@ -245,6 +370,8 @@ bool create_structs(ifstream &f, node *nodes, item *items, string *&options, int
 	string itemNames;
 	getline(f, itemNames);
 	istringstream is(itemNames);
+	
+	int optionalArgsLoc = -1;
 
 	map<string, int> itemIndex;
 	
@@ -271,6 +398,7 @@ bool create_structs(ifstream &f, node *nodes, item *items, string *&options, int
 				return false;
 			}
 			divided = 1;
+			optionalArgsLoc = i;
 			i--;
 			items[i].right = 0;
 			items[0].left = i;
@@ -297,6 +425,7 @@ bool create_structs(ifstream &f, node *nodes, item *items, string *&options, int
 	int spacerCount = 0;
 	int lastSpacer = nodeIndex;
 	nodes[nodeIndex].aux = -spacerCount++;
+	nodes[nodeIndex].color = 0;
 	nodeIndex++;
 	
 //    for (int i = 0; i < num_items; i++)
@@ -321,12 +450,37 @@ bool create_structs(ifstream &f, node *nodes, item *items, string *&options, int
 				return false;
 			}
 			
+			size_t loc = itm.find(':');
+			// has a color value
+			if (loc + 1 != 0) {
+				if (!divided) {
+					cout << "no optional args given, so cannot specify color value" << endl;
+					return false;
+				}
+				string color = itm.substr(loc + 1);
+				itm = itm.substr(0, loc);
+				if (color.size() != 1) {
+					cout << "color value must be single char, but got string " << color << endl;
+					return false;
+				}
+				nodes[nodeIndex].color = static_cast<int>(color[0]);
+			}
+			else
+				nodes[nodeIndex].color = 0;
+			
 			auto it = itemIndex.find(itm);
 			if (it == itemIndex.end()) {
 				cout << "key " << itm << " not in item list" << endl;
 				return false;
 			}
 			int x = it->second;
+			
+			if (optionalArgsLoc > x) {
+				if (nodes[nodeIndex].color > 0) {
+					cout << "option " << itm << " is not an optional arg, so cannot have color value" << endl;
+					return false;
+				}
+			}
 			
 			if (firstInRow == -1) {
 				firstInRow = nodeIndex;
@@ -348,6 +502,7 @@ bool create_structs(ifstream &f, node *nodes, item *items, string *&options, int
 		nodes[lastSpacer].down = nodeIndex - 1;
 		nodes[nodeIndex].up = firstInRow;
 		nodes[nodeIndex].aux = -spacerCount++;
+		nodes[nodeIndex].color = 0;
 		lastSpacer = nodeIndex;
 		nodeIndex++;
 	}
@@ -362,7 +517,7 @@ bool create_structs(ifstream &f, node *nodes, item *items, string *&options, int
 	f.close();
 	
 //	for (int i = 0; i < num_nodes; i++) {
-//		cout << i << ": " << nodes[i].aux << " " << nodes[i].up << " " << nodes[i].down << endl;
+//		cout << i << ": " << nodes[i].aux << " " << nodes[i].up << " " << nodes[i].down << " " << nodes[i].color << endl;
 //		if (i % 8 == 7)
 //			cout << endl;
 //	}
@@ -508,13 +663,22 @@ dlx init(const char* file_loc) {
 	return d;
 }
 
-void solve(dlx d, vector<vector<int>> &solutions) {
+void solve(dlx d, vector<vector<int>> &solutions, size_t stopAfter) {
 	vector<int> soln;
-	solveAllHelp(d->nodes, d->items, soln, solutions);
+	solveAllHelp(d->nodes, d->items, soln, solutions, stopAfter);
 }
 
 void solveOnce(dlx d, vector<int> &solution) {
 	solveOneHelp(d->nodes, d->items, solution);
+}
+
+void solveOptimal(dlx d, vector<int> &solution, float(*cost)(const vector<string> &solution), float costGoal, bool maximize) {
+	if (costGoal < 0 && costGoal != -1) {
+		cout << "Costs must be non-negative, so cost goal must also be (-1 means no goal)" << endl;
+		return;
+	}
+	vector<int> temp;
+	solveOptimalHelp(d, temp, solution, -1, cost, costGoal, maximize);
 }
 
 void makeDecisions(dlx d, vector<int> decisions) {
@@ -546,7 +710,7 @@ void write_to_file(dlx d, const char* save_to_file_loc, vector<int> decisions) {
 	write_file(save_to_file_loc, d->nodes, d->items, *(d->optionMap), decisions, d->num_items, d->num_options);
 }
 
-void getOptions(dlx d, vector<string> &results, vector<int> solution) {
+void getOptions(dlx d, vector<string> &results, const vector<int> solution) {
 	if (solution.size() == 0) {
 		cout << "no solution given" << endl;
 		return;

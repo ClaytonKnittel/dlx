@@ -9,11 +9,13 @@
 #include <iostream>
 //#include "kanoodle.hpp"
 //#include "sudoku.hpp"
-#include "nqueens.hpp"
+//#include "nqueens.hpp"
+#include "wordsearch.hpp"
 
 int main(int argc, const char * argv[]) {
 //	run();
 //	rudoku();
-	nqueens();
+//	nqueens();
+	wordsearch();
     return 0;
 }

@@ -37,8 +37,9 @@ typedef std::shared_ptr<dlx_struct> dlx;
 
 dlx init(const char* file_loc);
 
-void solve(dlx d, vector<vector<int>> &solutions);
+void solve(dlx d, vector<vector<int>> &solutions, size_t stopAfter=0);
 void solveOnce(dlx d, vector<int> &solution);
+void solveOptimal(dlx d, vector<int> &solution, float(*cost)(const vector<string> &solution), float costGoal=-1, bool maximize=false);
 
 // decisions is a list of the options chosen (in order given in file)
 void makeDecisions(dlx d, vector<int> decisions);
@@ -46,6 +47,6 @@ void makeDecisions(dlx d, vector<string> decisions);
 
 void write_to_file(dlx d, const char* save_to_file_loc, vector<int> decisions);
 
-void getOptions(dlx d, vector<string> &results, vector<int> solution);
+void getOptions(dlx d, vector<string> &results, const vector<int> solution);
 
 #endif /* knuth_h */

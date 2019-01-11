@@ -49,6 +49,7 @@ void write(const char* file_loc, int nn) {
 			f << "\nt" << i << j << " r" << i << " c" << j << " dl" << static_cast<char>(n + j - i - 1) << " dr" << static_cast<char>(i + j - '0');
 		}
 	}
+	f.close();
 }
 
 void print(vector<string> options, std::ostream &o=cout) {
