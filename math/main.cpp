@@ -8,14 +8,16 @@
 
 #include <iostream>
 //#include "kanoodle.hpp"
-//#include "sudoku.hpp"
+#include "sudoku.hpp"
 //#include "nqueens.hpp"
-#include "wordsearch.hpp"
+//#include "wordsearch.hpp"
+//#include "countingCastles.hpp"
 
 int main(int argc, const char * argv[]) {
 //	run();
-//	rudoku();
+	rudoku();
 //	nqueens();
-	wordsearch();
+//	wordsearch();
+//	counting();
     return 0;
 }
