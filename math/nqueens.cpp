@@ -7,46 +7,53 @@
 //
 
 #include "nqueens.hpp"
-#include "knuth.h"
+#include "knuth.hpp"
 
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <ctime>
 
 using std::cout;
 using std::endl;
 using std::ofstream;
 using std::istringstream;
 
+typedef unsigned char uchar;
+const uchar start = ':' + 1;
 
-void write(const char* file_loc, int nn) {
+void write(const char* file_loc, uchar nn) {
 	ofstream f;
 	f.open(file_loc);
 	if (!f.is_open()) {
 		cout << "unable to create file at " << file_loc << endl;
 		return;
 	}
-	char n = nn + '0';
 	
 	f << nn * nn + 2 * nn + 2 * (2 * nn - 1) << " " << nn * nn << " " << nn * nn * 5 << "\n";
 	
-	for (char i = '0'; i < n; i++) {
-		f << "r" << i << " c" << i << " ";
+	for (uchar i = 0; i < nn; i++) {
+		if (static_cast<uchar>(start + i) < start) {
+			cout << "out of bounds!" << endl;
+			return;
+		}
+		f << "r" << static_cast<uchar>(start + i) << " c" << static_cast<uchar>(start + i) << " ";
 	}
 	f << "|";
 	
-	for (char i = '0'; i < n; i++) {
-		for (char j = '0'; j < n; j++) {
-			f << " t" << i << j;
+	for (uchar i = 0; i < nn; i++) {
+		for (uchar j = 0; j < nn; j++) {
+			f << " t" << static_cast<uchar>(start + i) << static_cast<uchar>(start + j);
 		}
 	}
-	for (char i = '0'; i < 2 * nn - 1 + '0'; i++) {
-		f << " dl" << i << " dr" << i;
+	
+	for (uchar i = 0; i < 2 * nn - 1; i++) {
+		f << " dl" << static_cast<uchar>(start + i) << " dr" << static_cast<uchar>(start + i);
 	}
 	
-	for (char i = '0'; i < n; i++) {
-		for (char j = '0'; j < n; j++) {
-			f << "\nt" << i << j << " r" << i << " c" << j << " dl" << static_cast<char>(n + j - i - 1) << " dr" << static_cast<char>(i + j - '0');
+	for (uchar i = 0; i < nn; i++) {
+		for (uchar j = 0; j < nn; j++) {
+			f << "\nt" << static_cast<uchar>(start + i) << static_cast<uchar>(start + j) << " r" << static_cast<uchar>(start + i) << " c" << static_cast<uchar>(start + j) << " dl" << static_cast<uchar>(start + (nn + j - i - 1)) << " dr" << static_cast<uchar>(start + (i + j));
 		}
 	}
 	f.close();
@@ -64,8 +71,8 @@ void print(vector<string> options, std::ostream &o=cout) {
 		board[i] = false;
 	
 	for (string s : options) {
-		int i = s[1] - '0';
-		int j = s[2] - '0';
+		int i = s[1] - start;
+		int j = s[2] - start;
 		board[i + width * j] = true;
 	}
 	
@@ -94,18 +101,31 @@ void print(vector<string> options, std::ostream &o=cout) {
 	o << "\u2501\u2501\u2501\u251b\n";
 }
 
-void nqueens() {
-	write("/users/claytonknittel/documents/xcode/math/math/nqueens/pieces.txt", 8);
+void nqueens(int size) {
+	write("/users/claytonknittel/documents/xcode/math/math/nqueens/pieces.txt", size);
 	dlx d = init("/users/claytonknittel/documents/xcode/math/math/nqueens/pieces.txt");
 
-	vector<vector<int>> solns;
-	solve(d, solns);
+	printf("Number of solutions: %lu\n", countSolns(d));
 
-	cout << "number of solutions: " << solns.size() << endl;
+	// vector<vector<int>> solns;
+	// solve(d, solns);
+	// vector<int> soln;
+	
+	// printf("begin\n");
+	// clock_t t = clock();
+	// solveOnce(d, soln);
+	// t = clock() - t;
+	// printf("%f ms.\n", 1000.f * static_cast<float>(t) / CLOCKS_PER_SEC);
+	
+	// vector<string> res;
+	// getOptions(d, res, soln);
+	// print(res);
 
-//	for (auto soln : solns) {
-//		vector<string> c;
-//		getOptions(d, c, soln);
-//		print(c);
-//	}
+	// cout << "number of solutions: " << solns.size() << endl;
+
+	// for (auto soln : solns) {
+	// 	vector<string> c;
+	// 	getOptions(d, c, soln);
+	// 	print(c);
+	// }
 }

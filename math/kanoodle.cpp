@@ -7,7 +7,7 @@
 //
 
 #include "kanoodle.hpp"
-#include "knuth.h"
+#include "knuth.hpp"
 
 #include <fstream>
 #include <string>

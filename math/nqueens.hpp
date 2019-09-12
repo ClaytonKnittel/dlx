@@ -11,6 +11,6 @@
 
 #include <stdio.h>
 
-void nqueens();
+void nqueens(int size);
 
 #endif /* nqueens_hpp */

@@ -13,7 +13,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include "knuth.h"
+#include "knuth.hpp"
 
 using std::ifstream;
 using std::ofstream;

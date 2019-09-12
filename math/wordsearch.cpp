@@ -10,7 +10,7 @@
 #define HEIGHT 15
 
 #include "wordsearch.hpp"
-#include "knuth.h"
+#include "knuth.hpp"
 
 #include <vector>
 #include <string>

@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 
-#include "knuth.h"
+#include "knuth.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -155,6 +155,53 @@ void print_update(vector<int> &soln) {
 			cout << *it << " ";
 		cout << endl;
 	}
+}
+
+size_t countSolnsHelp(node *nodes, item *items) {
+	if (items[0].right == 0) {
+		return 1;
+	}
+	size_t solns = 0;
+	int minlen = -1;
+	int min_index = 0;
+	int find = items[0].right;
+	while (find != 0) {
+		int m = nodes[find].aux;
+		if (m < minlen || minlen == -1) {
+			minlen = m;
+			min_index = find;
+		}
+		find = items[find].right;
+	}
+	int i = min_index;
+	cover(nodes, items, i);
+	int xl = nodes[i].down;
+	while (xl != i) {
+		int p = xl + 1;
+		while (p != xl) {
+			int j = nodes[p].aux;
+			if (j <= 0)
+				p = nodes[p].up;
+			else {
+				commit(nodes, items, p, j);
+				p ++;
+			}
+		}
+		solns += countSolnsHelp(nodes, items);
+		p = xl - 1;
+		while (p != xl) {
+			int j = nodes[p].aux;
+			if (j <= 0)
+				p = nodes[p].down;
+			else {
+				uncommit(nodes, items, p, j);
+				p --;
+			}
+		}
+		xl = nodes[xl].down;
+	}
+	uncover(nodes, items, i);
+	return solns;
 }
 
 bool solveAllHelp(node *nodes, item *items, vector<int> &soln, vector<vector<int>> &solns, size_t stopAfter) {
@@ -666,6 +713,10 @@ dlx init(const char* file_loc) {
 void solve(dlx d, vector<vector<int>> &solutions, size_t stopAfter) {
 	vector<int> soln;
 	solveAllHelp(d->nodes, d->items, soln, solutions, stopAfter);
+}
+
+size_t countSolns(dlx d) {
+	return countSolnsHelp(d->nodes, d->items);
 }
 
 void solveOnce(dlx d, vector<int> &solution) {

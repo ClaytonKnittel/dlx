@@ -37,9 +37,11 @@ typedef std::shared_ptr<dlx_struct> dlx;
 
 dlx init(const char* file_loc);
 
+size_t countSolns(dlx d);
 void solve(dlx d, vector<vector<int>> &solutions, size_t stopAfter=0);
 void solveOnce(dlx d, vector<int> &solution);
-void solveOptimal(dlx d, vector<int> &solution, float(*cost)(const vector<string> &solution), float costGoal=-1, bool maximize=false);
+void solveOptimal(dlx d, vector<int> &solution, float(*cost)(const vector<string> &solution),
+				  float costGoal=-1, bool maximize=false);
 
 // decisions is a list of the options chosen (in order given in file)
 void makeDecisions(dlx d, vector<int> decisions);
